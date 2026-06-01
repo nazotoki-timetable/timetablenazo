@@ -1179,7 +1179,8 @@
       const sel = allShows.filter(s => selectedIds.includes(s.id)).sort((a, b) => {
         const tA = (a["開始時間(hh:mm)"] || a.start) || "";
         const tB = (b["開始時間(hh:mm)"] || b.start) || "";
-        return tA.localeCompare(tB);
+        return timeToMinutes(tA) - timeToMinutes(tB);
+        //return tA.localeCompare(tB);
       });
       let overlap = false;
       for (let i = 0; i < sel.length - 1; i++) {
