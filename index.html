@@ -512,7 +512,8 @@
           class="w-full bg-white text-main py-3 rounded-xl font-[900] text-sm shadow-sm active:scale-95 transition-all border-2 border-main border-opacity-20 flex justify-center items-center gap-1.5">
           <span class="material-symbols-outlined text-[18px]">download</span>画像を保存する
         </button>
-        <div id="ios-share-guide" class="hidden mt-2 p-3 bg-blue-50 border border-blue-200 rounded-xl text-center flex flex-col gap-2">
+        <div id="ios-share-guide"
+          class="hidden mt-2 p-3 bg-blue-50 border border-blue-200 rounded-xl text-center flex flex-col gap-2">
         </div>
       </div>
     </div>
@@ -564,7 +565,7 @@
 
   <script>
     // ▼▼▼ API URL：ここにGASのURLを設定してください ▼▼▼
-    const API_URL = 'https://script.google.com/macros/s/AKfycbyrgdc_vKs1bAbTH_urZSKhzbXi-8Ngx1dSnb9ESqTh2jg4G8h-RqMZnTpfFC-EV0pq/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbypW5eQaIOwNmktOg-sKs1A8Ke4cuadqnw9ToZKUUG8NS5QWxoNwKz3FEwOm8dpqgJK/exec';
     // ▲▲▲ ▲▲▲ ▲▲▲ ▲▲▲ ▲▲▲ ▲▲▲ ▲▲▲ ▲▲▲
 
     /**
@@ -792,6 +793,7 @@
         logoUrl: rawConfig["ロゴ画像URL"] || "",
         hashtag: rawConfig["SNSハッシュタグ"] || "#ハッシュタグ",
         allowZeroMinTransfer: String(rawConfig["0分移動可否"] || "").trim() === '0分移動OK',
+        allowSoldOutSelect: String(rawConfig["完売公演の選択可否"] || "").trim() === '選択OK',
         numDays: parseInt(rawConfig["開催日数"] || "1", 10),
         day1Label: rawConfig["1日目のラベル"] || "1日目",
         day2Label: rawConfig["2日目のラベル"] || "2日目",
@@ -821,7 +823,7 @@
         modalTitleEl.classList.add('hidden');
         // ロゴが外部URLの場合はキャッシュを試みる
         if (!CUSTOM_LOGO_BASE64) {
-          preloadLogoAsBase64(finalLogoUrl).then(b64 => { if(b64) cachedLogoBase64 = b64; });
+          preloadLogoAsBase64(finalLogoUrl).then(b64 => { if (b64) cachedLogoBase64 = b64; });
         } else {
           cachedLogoBase64 = CUSTOM_LOGO_BASE64;
         }
@@ -1035,7 +1037,9 @@
           const startStr = show["開始時間(hh:mm)"] || show.start;
           if (!startStr || !startStr.includes(":")) return;
           const isSoldOut = show["完売設定"] === true || show["完売設定"] === "true" || show["完売設定"] === "完売" || show["完売設定"] === "売切" || show["完売"] === true || show["完売"] === "true" || show["完売"] === "完売";
-          const soldOutClass = isSoldOut ? "opacity-40 grayscale pointer-events-none shadow-none" : "cursor-pointer";
+          const soldOutClass = isSoldOut
+            ? (config.allowSoldOutSelect ? "opacity-40 grayscale cursor-pointer" : "opacity-40 grayscale pointer-events-none shadow-none")
+            : "cursor-pointer";
           const soldOutBadge = isSoldOut ? `<div class="absolute inset-0 flex items-center justify-center z-10"><span class="bg-slate-700 text-white text-[8px] font-black px-2 py-0.5 rounded shadow-lg transform -rotate-12 uppercase text-center tracking-widest">SOLD OUT</span></div>` : "";
           const showId = show.id || `show-${index}-${Math.random().toString(36).substr(2, 9)}`;
           show.id = showId;
@@ -1332,8 +1336,8 @@
       document.getElementById('my-schedule-modal').classList.remove('hidden');
     }
 
-    function closeModal() { 
-      document.getElementById('my-schedule-modal').classList.add('hidden'); 
+    function closeModal() {
+      document.getElementById('my-schedule-modal').classList.add('hidden');
       //iOS用の案内エリアを空にして隠す
       const guideContainer = document.getElementById("ios-share-guide");
       if (guideContainer) {
