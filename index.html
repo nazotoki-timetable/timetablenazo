@@ -668,30 +668,23 @@
       return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
     }
 
-    // F12覗き見対策: 予約URLの復号用（UTF-8バイナリ方式：日本語完全対応）
+    // F12覗き見対策:
     function xorDecryptB64(b64, key) {
       if (!b64 || !key) return "";
       try {
-        // Base64デコードしてバイト配列に変換
         const binStr = atob(b64);
         const encBytes = new Uint8Array(binStr.length);
         for (let i = 0; i < binStr.length; i++) encBytes[i] = binStr.charCodeAt(i);
-
-        // パスワードをUTF-8バイト列に変換（日本語・全角記号OK）
         const keyBytes = new TextEncoder().encode(key);
-
-        // XOR復号をバイト列に対して実行
         const decBytes = encBytes.map((b, i) => b ^ keyBytes[i % keyBytes.length]);
-
-        // UTF-8バイト列を文字列に戻す
         return new TextDecoder('utf-8').decode(decBytes);
       } catch (e) {
         return "";
       }
     }
 
-    const unlockedShows = new Set(); // groupKey(公演ID)で管理
-    const unlockedUrls = {}; // groupKey -> 復号済みURL
+    const unlockedShows = new Set();
+    const unlockedUrls = {};
 
     function promptLock(groupKey, encryptedData, event) {
       if (event) event.stopPropagation();
@@ -803,7 +796,7 @@
       config = {
         title: rawConfig["イベント名"] || "タイムテーブル",
         subtitle: rawConfig["サブタイトル"] || "",
-        date: String(rawConfig["開催日(YYYYMMDD)"] || rawConfig["開催日"] || "").replace(/\D/g, ""),
+        date: String(rawConfig["開催日(YYYYMMDD)"] || rawConfig["開催日"] || ""),
         startHour: parseInt((rawConfig["開始時間(hh:mm)"] || "10:00").split(":")[0], 10),
         endHour: parseInt((rawConfig["終了時間(hh:mm)"] || "20:00").split(":")[0], 10),
         headerUrl: rawConfig["ヘッダー画像URL"] || rawConfig["背景画像URL"] || "",
@@ -856,8 +849,11 @@
 
       document.getElementById('modal-hashtag').innerText = config.hashtag;
       const d = String(config.date);
-      if (d.length >= 8) {
-        document.getElementById('modal-fes-date').innerText = `${d.substring(0, 4)}.${d.substring(4, 6)}.${d.substring(6, 8)}`;
+      const rawCleaned = d.replace(/\D/g, "");
+      if (rawCleaned.length === 8) {
+        document.getElementById('modal-fes-date').innerText = `${rawCleaned.substring(0, 4)}.${rawCleaned.substring(4, 6)}.${rawCleaned.substring(6, 8)}`;
+      } else {
+        document.getElementById('modal-fes-date').innerText = d;
       }
 
       if (config.headerUrl) {
@@ -1002,7 +998,7 @@
           titleHtml = `<h3 class="font-[900] ${titleSizeClass} leading-[1.3] mystic-text break-words whitespace-pre-wrap select-none">${title}</h3>`;
         }
 
-        // ヘッダーボタン用: groupKeyを使ってonclickを生成（文字列エスケープ不要）
+        // ヘッダーボタン用: groupKeyを使ってonclickを生成
         const safeEncryptedForHeader = lockPassword.replace(/'/g, "\\'");
 
         // 予約ボタンロジック
@@ -1148,7 +1144,7 @@
           const cardLockBadge = isCardLock && !isCardNoise ? `<div class="absolute -top-2 -left-2 bg-slate-800 text-white w-5 h-5 rounded-full flex items-center justify-center shadow-md z-20"><span class="material-symbols-outlined text-[12px] text-accent">lock</span></div>` : "";
           const lockedStateClass = isCardLock && !isCardNoise ? "card-locked-state" : "";
 
-          // カードごとの暗号データ（Base64は特殊文字を含まないのでエスケープ不要）
+          // カードごとの暗号データ
           const cardEncData = String(show["_encryptedData"] || "").replace(/'/g, "\\'");
           const onclickHandler = isCardLock ? `promptLock('${groupKey}', '${cardEncData}', event)` : `toggleShow('${showId}', event)`;
 
@@ -1310,6 +1306,29 @@
         const tB = (b["開始時間(hh:mm)"] || b.start) || "";
         return tA.localeCompare(tB);
       });
+
+      const uniqueDays = [...new Set(sel.map(s => s["日程"] || "1日目"))].sort();
+      const dayLabels = uniqueDays.map(dayStr => {
+        const match = dayStr.match(/(\d+)日目/);
+        if (match) {
+          const num = match[1];
+          return config[`day${num}Label`] || dayStr;
+        }
+        return dayStr;
+      });
+
+      let baseDate = config.date;
+      const rawCleaned = baseDate.replace(/\D/g, "");
+      if (rawCleaned.length === 8) {
+        baseDate = `${rawCleaned.substring(0, 4)}.${rawCleaned.substring(4, 6)}.${rawCleaned.substring(6, 8)}`;
+      }
+
+      if (dayLabels.length > 0) {
+        document.getElementById('modal-fes-date').innerText = `${baseDate} 【${dayLabels.join(' & ')}】`;
+      } else {
+        document.getElementById('modal-fes-date').innerText = baseDate;
+      }
+
       let overlap = false;
       for (let i = 0; i < sel.length - 1; i++) {
         const t1 = sel[i]["予約形式"] || "";
@@ -1626,7 +1645,7 @@
         }
       });
 
-      // 団体名→公演名の順でソート（見やすさのため）
+      // 団体名→公演名の順でソート
       uniqueShows.sort((a, b) => a.circle.localeCompare(b.circle) || a.title.localeCompare(b.title));
 
       uniqueShows.forEach((show, index) => {
@@ -1651,7 +1670,7 @@
       });
     }
 
-    // チェック状態によってラベルの透明度（グレーアウト）を動的に切り替える
+    // チェック状態によってラベルの透明度（グレーアウト）切り替え
     function toggleLabelStyle(index, isChecked) {
       const label = document.getElementById(`hide-show-label-${index}`);
       if (label) {
